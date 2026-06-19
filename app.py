@@ -467,7 +467,80 @@ def chat_create_ticket():
             chr(10).join(lines)
         )
 
+    # Post initial system message to ticket chat
+    now2 = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    db.collection('tickets').document(ticket_id).collection('chat_messages').add({
+        'author': 'System',
+        'role': 'system',
+        'body': 'Ticket created. Waiting for a support agent to join...',
+        'type': 'event',
+        'created_at': now2
+    })
+
     return jsonify({'ticket_id': ticket_id})
+
+
+# ── Routes: Ticket Chat (real-time polling) ───────────────────────────────────
+@app.route('/tickets/<ticket_id>/chat')
+@login_required
+def ticket_chat(ticket_id):
+    doc = db.collection('tickets').document(ticket_id).get()
+    if not doc.exists:
+        flash('Ticket not found.', 'error')
+        return redirect(url_for('tickets'))
+    ticket = {'id': doc.id, **doc.to_dict()}
+    return render_template('ticket_chat.html', ticket=ticket)
+
+@app.route('/tickets/<ticket_id>/chat/messages')
+@login_required
+def ticket_chat_messages(ticket_id):
+    msgs_ref = db.collection('tickets').document(ticket_id).collection('chat_messages').order_by('created_at')
+    messages = [{'id': m.id, **m.to_dict()} for m in msgs_ref.stream()]
+    ticket = db.collection('tickets').document(ticket_id).get().to_dict()
+    return jsonify({
+        'messages': messages,
+        'status': ticket.get('status', 'Open'),
+        'assigned_to': ticket.get('assigned_to', '')
+    })
+
+@app.route('/tickets/<ticket_id>/chat/send', methods=['POST'])
+@login_required
+def ticket_chat_send(ticket_id):
+    data = request.get_json()
+    body = data.get('body', '').strip()
+    if not body:
+        return jsonify({'error': 'Empty message'}), 400
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    db.collection('tickets').document(ticket_id).collection('chat_messages').add({
+        'author': session.get('name'),
+        'role': session.get('role'),
+        'body': body,
+        'type': 'message',
+        'created_at': now
+    })
+    db.collection('tickets').document(ticket_id).update({'updated_at': now})
+    return jsonify({'ok': True})
+
+@app.route('/tickets/<ticket_id>/chat/join', methods=['POST'])
+@admin_required
+def ticket_chat_join(ticket_id):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    name = session.get('name')
+    role = session.get('role')
+    db.collection('tickets').document(ticket_id).collection('chat_messages').add({
+        'author': name,
+        'role': role,
+        'body': name + ' joined the chat',
+        'type': 'event',
+        'created_at': now
+    })
+    if role == 'agent':
+        db.collection('tickets').document(ticket_id).update({
+            'assigned_to': name,
+            'status': 'In Progress',
+            'updated_at': now
+        })
+    return jsonify({'ok': True})
 
 # ── Routes: Admin ─────────────────────────────────────────────────────────────
 @app.route('/admin')

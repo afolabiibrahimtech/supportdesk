@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Chat — Ticket #{{ ticket.id }}{% endblock %}
+{% block page_title %}Ticket #{{ ticket.id }}{% endblock %}
+{% block page_subtitle %}{{ ticket.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;margin:0 auto;">
+  <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:480px;">
+
+    <!-- Header -->
+    <div style="padding:14px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#fff;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1e293b;">{{ ticket.title }}</div>
+          <div id="statusLabel" style="font-size:11px;color:#94a3b8;">
+            {% if ticket.assigned_to %}{{ ticket.assigned_to }} is handling this ticket{% else %}Waiting for support...{% endif %}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="statusBadge" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
+          {% if ticket.status == 'Open' %}background:#dbeafe;color:#1d4ed8;
+          {% elif ticket.status == 'In Progress' %}background:#fef3c7;color:#92400e;
+          {% else %}background:#dcfce7;color:#166534;{% endif %}">
+          {{ ticket.status }}
+        </span>
+        {% if session.role in ('admin', 'agent') %}
+        <button onclick="joinChat()" id="joinBtn"
+          style="background:#6366f1;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">
+          Join Chat
+        </button>
+        {% endif %}
+        <a href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}"
+          style="font-size:12px;color:#6366f1;text-decoration:none;font-weight:500;">View Details →</a>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="messages" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;background:#f8fafc;">
+    </div>
+
+    <!-- Input -->
+    <div style="padding:14px 20px;border-top:1px solid #e2e8f0;background:#fff;display:flex;gap:10px;align-items:flex-end;">
+      <textarea id="msgInput" placeholder="Type a message..." rows="1"
+        style="flex:1;border:1px solid #e2e8f0;border-radius:12px;padding:10px 16px;font-size:13px;font-family:inherit;resize:none;outline:none;line-height:1.5;color:#334155;background:#f8fafc;max-height:100px;overflow-y:auto;"
+        onfocus="this.style.borderColor='#6366f1';this.style.background='#fff'"
+        onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+      <button onclick="sendMsg()"
+        style="width:40px;height:40px;background:#6366f1;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ticketId = '{{ ticket.id }}';
+const myName = '{{ session.name }}';
+const myRole = '{{ session.role }}';
+let lastCount = 0;
+
+function renderMessages(messages, assignedTo) {
+  if (messages.length === lastCount) return;
+  lastCount = messages.length;
+  const container = document.getElementById('messages');
+  container.innerHTML = '';
+
+  messages.forEach(m => {
+    if (m.type === 'event') {
+      // System / event message (centered)
+      const div = document.createElement('div');
+      div.style.cssText = 'text-align:center;';
+      div.innerHTML = `<span style="font-size:11px;color:#94a3b8;background:#e2e8f0;padding:4px 12px;border-radius:20px;">${m.body}</span>`;
+      container.appendChild(div);
+      return;
+    }
+
+    const isMe = m.author === myName;
+    const isAgent = m.role === 'agent' || m.role === 'admin';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `display:flex;gap:10px;align-items:flex-start;${isMe ? 'flex-direction:row-reverse;' : ''}`;
+
+    // Avatar
+    const avatar = document.createElement('div');
+    avatar.style.cssText = `width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;${isAgent ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6);' : 'background:#334155;'}`;
+    avatar.textContent = (m.author || 'U')[0].toUpperCase();
+
+    const inner = document.createElement('div');
+    inner.style.cssText = 'max-width:72%;';
+
+    const label = document.createElement('div');
+    label.style.cssText = `font-size:10px;color:#94a3b8;margin-bottom:3px;${isMe ? 'text-align:right;' : ''}`;
+    label.textContent = m.author + (isAgent ? ' (Support)' : '') + ' · ' + (m.created_at || '').slice(11, 16);
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = isMe
+      ? 'background:#6366f1;color:#fff;border-radius:16px 4px 16px 16px;padding:10px 14px;font-size:13px;line-height:1.6;'
+      : 'background:#fff;border:1px solid #e2e8f0;border-radius:4px 16px 16px 16px;padding:10px 14px;font-size:13px;color:#334155;line-height:1.6;box-shadow:0 1px 2px rgba(0,0,0,0.04);';
+    bubble.textContent = m.body;
+
+    inner.appendChild(label);
+    inner.appendChild(bubble);
+    wrap.appendChild(avatar);
+    wrap.appendChild(inner);
+    container.appendChild(wrap);
+  });
+
+  container.scrollTop = container.scrollHeight;
+
+  // Update header status
+  if (assignedTo) {
+    document.getElementById('statusLabel').textContent = assignedTo + ' is handling this ticket';
+  }
+}
+
+async function poll() {
+  try {
+    const res = await fetch(`/tickets/${ticketId}/chat/messages`);
+    const data = await res.json();
+    renderMessages(data.messages, data.assigned_to);
+
+    // Update status badge
+    const badge = document.getElementById('statusBadge');
+    const s = data.status;
+    badge.textContent = s;
+    badge.style.background = s === 'Resolved' ? '#dcfce7' : s === 'In Progress' ? '#fef3c7' : '#dbeafe';
+    badge.style.color = s === 'Resolved' ? '#166534' : s === 'In Progress' ? '#92400e' : '#1d4ed8';
+  } catch(e) {}
+}
+
+async function sendMsg() {
+  const input = document.getElementById('msgInput');
+  const body = input.value.trim();
+  if (!body) return;
+  input.value = '';
+  input.style.height = 'auto';
+  await fetch(`/tickets/${ticketId}/chat/send`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({body})
+  });
+  poll();
+}
+
+async function joinChat() {
+  const btn = document.getElementById('joinBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Joining...'; }
+  await fetch(`/tickets/${ticketId}/chat/join`, {method: 'POST'});
+  if (btn) { btn.textContent = 'Joined'; btn.style.background = '#22c55e'; }
+  poll();
+}
+
+// Auto resize textarea
+document.getElementById('msgInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+// Poll every 3 seconds
+poll();
+setInterval(poll, 3000);
+</script>
+{% endblock %}

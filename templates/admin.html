@@ -99,8 +99,10 @@
             <td class="px-4 py-3 text-xs text-slate-500">{{ t.category }}</td>
             <td class="px-4 py-3 text-xs text-slate-500">{{ t.assigned_to or '—' }}</td>
             <td class="px-4 py-3 text-xs text-slate-500">{{ t.created_by or '—' }}</td>
-            <td class="px-4 py-3">
-              <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}" class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">View →</a>
+            <td class="px-4 py-3" style="white-space:nowrap;">
+              <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}" class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">Detail</a>
+              <span style="color:#e2e8f0;margin:0 4px;">|</span>
+              <a href="{{ url_for('ticket_chat', ticket_id=t.id) }}" class="text-xs font-medium" style="color:#8b5cf6;">Chat</a>
             </td>
           </tr>
           {% endfor %}
