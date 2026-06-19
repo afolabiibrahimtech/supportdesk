@@ -77,7 +77,7 @@ def get_ai_suggestion(title, description, priority, category):
                     f"to resolve this support ticket.\n\n"
                     f"Title: {title}\nCategory: {category}\nPriority: {priority}\n"
                     f"Description: {description}\n\n"
-                    f"Give a 1-2 sentence summary of the most likely cause and the single best first step to resolve it. Be concise."
+                    f"Reply in 4 lines max. State the likely cause in one line, then give one clear fix. No markdown, no bullet points, no lengthy explanations."
                 )
             }]
         }).encode()
@@ -430,10 +430,9 @@ def chat_message():
             'max_tokens': 500,
             'system': (
                 'You are a friendly and professional technical support assistant for SupportDesk. '
-                'Help users resolve their technical issues with clear, concise steps. '
-                'After 2 exchanges, if the issue is not resolved, naturally suggest that they '
-                'can speak with a human representative for further assistance. '
-                'Keep responses brief and actionable. Never mention you are Claude or made by Anthropic.'
+                'Help users resolve technical issues. Keep every reply under 4 lines — no bullet points, no markdown. '
+                'Be direct and human. After 2 exchanges, if unresolved, suggest speaking with a representative. '
+                'Never mention you are Claude or made by Anthropic.'
             ),
             'messages': messages
         }).encode()
