@@ -155,16 +155,25 @@ def register():
         email    = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
 
+        if not name or not email or not password:
+            flash('All fields are required.', 'error')
+            return render_template('register.html')
+
         try:
+            # Create user in Firebase Auth
             user = auth.create_user(email=email, password=password, display_name=name)
+
+            # Create or update user document in Firestore
             db.collection('users').document(user.uid).set({
                 'name': name,
                 'email': email,
                 'role': 'user',
                 'created_at': datetime.now().strftime("%Y-%m-%d %H:%M")
-            })
-            flash('Account created! You can now log in.', 'success')
+            }, merge=True)
+
+            flash('Account created successfully! You can now log in.', 'success')
             return redirect(url_for('login'))
+
         except Exception as e:
             msg = str(e)
             if 'EMAIL_EXISTS' in msg or 'already exists' in msg.lower():
@@ -175,11 +184,6 @@ def register():
                 flash('Registration failed. Please try again.', 'error')
 
     return render_template('register.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
 
 # ── Routes: Dashboard ─────────────────────────────────────────────────────────
 @app.route('/dashboard')
