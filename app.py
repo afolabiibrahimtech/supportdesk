@@ -368,6 +368,105 @@ def delete_ticket(ticket_id):
     flash('Ticket deleted.', 'success')
     return redirect(url_for('tickets'))
 
+
+# ── Routes: Chat ──────────────────────────────────────────────────────────────
+@app.route('/chat')
+@login_required
+def chat():
+    return render_template('chat.html')
+
+@app.route('/chat/message', methods=['POST'])
+@login_required
+def chat_message():
+    data = request.get_json()
+    messages = data.get('messages', [])
+
+    if not ANTHROPIC_API_KEY:
+        return jsonify({'reply': 'AI is not configured. Please contact your administrator.'})
+
+    try:
+        payload = json.dumps({
+            'model': 'claude-sonnet-4-6',
+            'max_tokens': 500,
+            'system': (
+                'You are a friendly and professional technical support assistant for SupportDesk. '
+                'Help users resolve their technical issues with clear, concise steps. '
+                'After 2 exchanges, if the issue is not resolved, naturally suggest that they '
+                'can speak with a human representative for further assistance. '
+                'Keep responses brief and actionable. Never mention you are Claude or made by Anthropic.'
+            ),
+            'messages': messages
+        }).encode()
+
+        req = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages',
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01'
+            },
+            method='POST'
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            result = json.loads(resp.read())
+            return jsonify({'reply': result['content'][0]['text']})
+    except Exception as e:
+        return jsonify({'reply': 'I am having trouble connecting right now. Please try again.'})
+
+@app.route('/chat/create-ticket', methods=['POST'])
+@login_required
+def chat_create_ticket():
+    data = request.get_json()
+    messages = data.get('messages', [])
+
+    # Build summary from chat history
+    user_messages = [m['content'] for m in messages if m['role'] == 'user']
+    title = user_messages[0][:80] if user_messages else 'Support Request'
+    description = chr(10).join([
+        f"{'User' if m['role'] == 'user' else 'AI'}: {m['content']}"
+        for m in messages
+    ])
+
+    # Generate AI suggestion from the full conversation
+    ai_suggestion = get_ai_suggestion(title, description, 'Medium', 'General')
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    doc_ref = db.collection('tickets').add({
+        'title': title,
+        'description': description,
+        'status': 'Open',
+        'priority': 'Medium',
+        'category': 'General',
+        'email': session.get('email', ''),
+        'assigned_to': '',
+        'created_by': session.get('name'),
+        'created_by_uid': session.get('uid'),
+        'created_at': now,
+        'updated_at': now,
+        'ai_suggestion': ai_suggestion,
+        'email_sent': False,
+        'source': 'chat'
+    })
+    ticket_id = doc_ref[1].id
+
+    if session.get('email'):
+        simulate_email(
+            session['email'],
+            '[SupportDesk] Your ticket has been created',
+            f"Hi {session.get('name')},
+
+Your support ticket has been created.
+"
+            f"Ticket reference: #{ticket_id}
+"
+            f"A support agent will be assigned shortly.
+
+— SupportDesk"
+        )
+
+    return jsonify({'ticket_id': ticket_id})
+
 # ── Routes: Admin ─────────────────────────────────────────────────────────────
 @app.route('/admin')
 @admin_required
