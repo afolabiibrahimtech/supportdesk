@@ -105,6 +105,20 @@
     /* Content */
     .content { padding: 32px; flex: 1; }
 
+    .mobile-signout {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      color: #64748b;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .mobile-signout:hover { background: #f1f5f9; color: #ef4444; }
+    .mobile-signout svg { width: 18px; height: 18px; display: block; }
+
     /* Mobile */
     @media (max-width: 1023px) {
       #sidebar { transform: translateX(-100%); }
@@ -115,6 +129,7 @@
       .content { padding: 16px; }
       .flash-wrap { padding: 12px 16px 0; }
       .btn-new-ticket-text { display: none; }
+      .mobile-signout { display: flex; }
     }
   </style>
 </head>

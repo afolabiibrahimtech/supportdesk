@@ -201,6 +201,11 @@ def dashboard():
     tickets_ref = db.collection('tickets').order_by('created_at', direction=firestore.Query.DESCENDING)
     all_tickets = [{'id': d.id, **d.to_dict()} for d in tickets_ref.stream()]
 
+    # Agents only see their assigned tickets
+    if session.get('role') == 'agent':
+        agent_name = session.get('name', '')
+        all_tickets = [t for t in all_tickets if t.get('assigned_to', '') == agent_name]
+
     stats = {
         'total':       len(all_tickets),
         'open':        sum(1 for t in all_tickets if t.get('status') == 'Open'),
@@ -233,6 +238,11 @@ def tickets():
     ref = db.collection('tickets').order_by('created_at', direction=firestore.Query.DESCENDING)
     all_tickets = [{'id': d.id, **d.to_dict()} for d in ref.stream()]
 
+    # Agents only see tickets assigned to them
+    if session.get('role') == 'agent':
+        agent_name = session.get('name', '')
+        all_tickets = [t for t in all_tickets if t.get('assigned_to', '') == agent_name]
+
     if search:
         all_tickets = [t for t in all_tickets if search in t.get('title','').lower() or search in t.get('description','').lower()]
     if status_f:
@@ -249,10 +259,9 @@ def tickets():
 @app.route('/tickets/new', methods=['GET', 'POST'])
 @login_required
 def new_ticket():
-    # Agents cannot open tickets
-    if session.get('role') == 'agent':
-        flash('Agents cannot open tickets.', 'error')
-        return redirect(url_for('tickets'))
+    # Only admins can open tickets on behalf of users
+    if session.get('role') != 'admin':
+        return redirect(url_for('chat'))
 
     if request.method == 'POST':
         title       = request.form.get('title', '').strip()
@@ -572,6 +581,16 @@ def update_user_role(uid):
         db.collection('users').document(uid).update({'role': new_role})
         flash('User role updated.', 'success')
     return redirect(url_for('admin'))
+
+
+@app.route('/debug/users')
+@admin_required
+def debug_users():
+    users = []
+    for u in db.collection('users').stream():
+        data = u.to_dict()
+        users.append({'id': u.id, 'name': data.get('name'), 'email': data.get('email'), 'role': repr(data.get('role'))})
+    return jsonify(users)
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
