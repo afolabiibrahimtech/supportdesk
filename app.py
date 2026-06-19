@@ -249,10 +249,14 @@ def tickets():
 @app.route('/tickets/new', methods=['GET', 'POST'])
 @login_required
 def new_ticket():
+    # Agents cannot open tickets
+    if session.get('role') == 'agent':
+        flash('Agents cannot open tickets.', 'error')
+        return redirect(url_for('tickets'))
+
     if request.method == 'POST':
         title       = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
-        priority    = request.form.get('priority', 'Medium')
         category    = request.form.get('category', 'General')
         email       = request.form.get('email', '').strip()
 
@@ -260,14 +264,15 @@ def new_ticket():
             flash('Title and description are required.', 'error')
             return render_template('ticket_form.html')
 
-        ai_suggestion = get_ai_suggestion(title, description, priority, category)
+        # Priority defaults to Medium — only admin can change it after creation
+        ai_suggestion = get_ai_suggestion(title, description, 'Medium', category)
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
         doc_ref = db.collection('tickets').add({
             'title': title,
             'description': description,
             'status': 'Open',
-            'priority': priority,
+            'priority': 'Medium',
             'category': category,
             'email': email,
             'assigned_to': '',
@@ -282,9 +287,9 @@ def new_ticket():
 
         if email:
             simulate_email(email,
-                f"[SupportDesk] Ticket Created",
+                "[SupportDesk] Ticket Created",
                 f"Hi,\n\nYour ticket '{title}' has been received.\n"
-                f"Priority: {priority} | Category: {category}\n\n"
+                f"Category: {category}\n\n"
                 f"AI Suggestion:\n{ai_suggestion}\n\nWe'll be in touch soon.\n\n— SupportDesk")
 
         flash('Ticket created successfully!', 'success')
@@ -308,17 +313,27 @@ def ticket_detail(ticket_id):
 @admin_required
 def update_ticket(ticket_id):
     status      = request.form.get('status')
-    priority    = request.form.get('priority')
     assigned_to = request.form.get('assigned_to', '')
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     doc_ref = db.collection('tickets').document(ticket_id)
     old = doc_ref.get().to_dict()
-    doc_ref.update({'status': status, 'priority': priority, 'assigned_to': assigned_to, 'updated_at': now})
+
+    update_data = {
+        'status': status,
+        'assigned_to': assigned_to,
+        'updated_at': now
+    }
+
+    # Only admin can change priority
+    if session.get('role') == 'admin':
+        update_data['priority'] = request.form.get('priority', old.get('priority', 'Medium'))
+
+    doc_ref.update(update_data)
 
     if old.get('email') and status != old.get('status'):
         simulate_email(old['email'],
-            f"[SupportDesk] Ticket Status Updated",
+            "[SupportDesk] Ticket Status Updated",
             f"Hi,\n\nYour ticket '{old['title']}' status changed to: {status}\n"
             f"Assigned to: {assigned_to or 'Unassigned'}\n\n— SupportDesk")
         doc_ref.update({'email_sent': True})

@@ -17,46 +17,57 @@
         <textarea name="description" required rows="5" placeholder="Describe the issue in detail — what happened, steps to reproduce, expected vs actual behavior..."
           class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
       </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
-          <select name="category" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            <option value="Bug">🐛 Bug</option>
-            <option value="Feature">✨ Feature Request</option>
-            <option value="Account">👤 Account</option>
-            <option value="Performance">⚡ Performance</option>
-            <option value="General">📋 General</option>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
+        <div class="relative">
+          <select name="category" class="w-full border border-slate-300 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 appearance-none bg-white">
+            <option value="Bug">Bug</option>
+            <option value="Feature">Feature Request</option>
+            <option value="Account">Account</option>
+            <option value="Performance">Performance</option>
+            <option value="General">General</option>
           </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Priority</label>
-          <select name="priority" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            <option value="Low">🟢 Low</option>
-            <option value="Medium" selected>🟡 Medium</option>
-            <option value="High">🟠 High</option>
-            <option value="Critical">🔴 Critical</option>
-          </select>
+          <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 10V5a2 2 0 012-2z"/>
+            </svg>
+          </div>
+          <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
         </div>
       </div>
+
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">Email (for notifications)</label>
-        <input type="email" name="email" placeholder="your@email.com"
-          class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+        <div class="relative">
+          <input type="email" name="email" placeholder="your@email.com"
+            class="w-full border border-slate-300 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+          <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
         <p class="text-xs text-slate-400 mt-1">We'll send confirmation and status updates here.</p>
       </div>
 
-      <!-- AI notice -->
       <div class="bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3 flex items-start gap-3">
         <svg class="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
         </svg>
-        <p class="text-xs text-indigo-700">AI-powered suggestions will be generated automatically for your ticket using Claude.</p>
+        <p class="text-xs text-indigo-700">AI-powered suggestions will be generated automatically for your ticket.</p>
       </div>
 
       <div class="flex gap-3 pt-2">
         <button type="submit" id="submitBtn"
           class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
           <span id="submitText">Submit Ticket</span>
         </button>
         <a href="{{ url_for('tickets') }}" class="text-slate-500 hover:text-slate-700 text-sm py-2.5 px-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">Cancel</a>
