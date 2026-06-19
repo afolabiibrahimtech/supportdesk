@@ -24,7 +24,6 @@ if cred_json:
     cred_dict = json.loads(cred_json)
     cred = credentials.Certificate(cred_dict)
 else:
-    # Local fallback
     cred = credentials.Certificate(os.path.join(BASE_DIR, 'serviceAccountKey.json'))
 
 firebase_admin.initialize_app(cred)
@@ -105,7 +104,6 @@ def login():
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
         try:
-            # Verify with Firebase Auth REST API
             api_key = os.getenv('FIREBASE_WEB_API_KEY', '')
             payload = json.dumps({
                 "email": email,
@@ -122,7 +120,6 @@ def login():
                 data = json.loads(resp.read())
                 uid = data['localId']
 
-            # Get user role from Firestore
             user_doc = db.collection('users').document(uid).get()
             if not user_doc.exists:
                 flash('Account not found. Please contact an administrator.', 'error')
@@ -160,17 +157,24 @@ def register():
             return render_template('register.html')
 
         try:
-            # Create user in Firebase Auth
-            user = auth.create_user(email=email, password=password, display_name=name)
+            try:
+                existing = auth.get_user_by_email(email)
+                firestore_doc = db.collection('users').document(existing.uid).get()
+                if not firestore_doc.exists:
+                    auth.delete_user(existing.uid)
+                else:
+                    flash('An account with that email already exists.', 'error')
+                    return render_template('register.html')
+            except auth.UserNotFoundError:
+                pass
 
-            # Create or update user document in Firestore
+            user = auth.create_user(email=email, password=password, display_name=name)
             db.collection('users').document(user.uid).set({
                 'name': name,
                 'email': email,
                 'role': 'user',
                 'created_at': datetime.now().strftime("%Y-%m-%d %H:%M")
-            }, merge=True)
-
+            })
             flash('Account created successfully! You can now log in.', 'success')
             return redirect(url_for('login'))
 
@@ -184,6 +188,11 @@ def register():
                 flash('Registration failed. Please try again.', 'error')
 
     return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 # ── Routes: Dashboard ─────────────────────────────────────────────────────────
 @app.route('/dashboard')
@@ -201,7 +210,6 @@ def dashboard():
     }
     recent = all_tickets[:5]
 
-    # Chart data
     from collections import Counter
     by_status   = [{'status': k, 'cnt': v} for k, v in Counter(t.get('status','') for t in all_tickets).items()]
     by_priority = [{'priority': k, 'cnt': v} for k, v in Counter(t.get('priority','') for t in all_tickets).items()]
@@ -338,7 +346,6 @@ def add_comment(ticket_id):
 @app.route('/tickets/<ticket_id>/delete', methods=['POST'])
 @admin_required
 def delete_ticket(ticket_id):
-    # Delete subcollection comments first
     comments = db.collection('tickets').document(ticket_id).collection('comments').stream()
     for c in comments:
         c.reference.delete()
