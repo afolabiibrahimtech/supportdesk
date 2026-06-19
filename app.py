@@ -29,6 +29,19 @@ else:
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+# ── Refresh role from Firestore on every request ──────────────────────────────
+from flask import g
+
+@app.before_request
+def refresh_user_role():
+    if 'uid' in session:
+        try:
+            user_doc = db.collection('users').document(session['uid']).get()
+            if user_doc.exists:
+                session['role'] = user_doc.to_dict().get('role', 'user')
+        except Exception:
+            pass
+
 # ── Auth Decorators ───────────────────────────────────────────────────────────
 def login_required(f):
     @wraps(f)
@@ -64,7 +77,7 @@ def get_ai_suggestion(title, description, priority, category):
                     f"to resolve this support ticket.\n\n"
                     f"Title: {title}\nCategory: {category}\nPriority: {priority}\n"
                     f"Description: {description}\n\n"
-                    f"Give 2-3 numbered steps to investigate/resolve, then one follow-up action."
+                    f"Give a 1-2 sentence summary of the most likely cause and the single best first step to resolve it. Be concise."
                 )
             }]
         }).encode()
@@ -198,33 +211,51 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    role = session.get('role')
+    uid  = session.get('uid')
+    name = session.get('name', '')
+
     tickets_ref = db.collection('tickets').order_by('created_at', direction=firestore.Query.DESCENDING)
     all_tickets = [{'id': d.id, **d.to_dict()} for d in tickets_ref.stream()]
 
-    # Agents only see their assigned tickets
-    if session.get('role') == 'agent':
-        agent_name = session.get('name', '')
-        all_tickets = [t for t in all_tickets if t.get('assigned_to', '') == agent_name]
+    if role == 'user':
+        # User sees only their own tickets
+        my_tickets = [t for t in all_tickets if t.get('created_by_uid') == uid]
+        active    = [t for t in my_tickets if t.get('status') != 'Resolved']
+        history   = [t for t in my_tickets if t.get('status') == 'Resolved']
+        return render_template('dashboard.html',
+            role='user', active_tickets=active, ticket_history=history)
 
-    stats = {
-        'total':       len(all_tickets),
-        'open':        sum(1 for t in all_tickets if t.get('status') == 'Open'),
-        'in_progress': sum(1 for t in all_tickets if t.get('status') == 'In Progress'),
-        'resolved':    sum(1 for t in all_tickets if t.get('status') == 'Resolved'),
-        'critical':    sum(1 for t in all_tickets if t.get('priority') == 'Critical'),
-    }
-    recent = all_tickets[:5]
+    elif role == 'agent':
+        # Agent sees only their assigned tickets
+        my_tickets  = [t for t in all_tickets if t.get('assigned_to', '') == name]
+        assigned    = sum(1 for t in my_tickets)
+        in_progress = sum(1 for t in my_tickets if t.get('status') == 'In Progress')
+        resolved    = sum(1 for t in my_tickets if t.get('status') == 'Resolved')
+        recent      = my_tickets[:5]
+        return render_template('dashboard.html',
+            role='agent', assigned=assigned, in_progress=in_progress,
+            resolved=resolved, recent_tickets=recent)
 
-    from collections import Counter
-    by_status   = [{'status': k, 'cnt': v} for k, v in Counter(t.get('status','') for t in all_tickets).items()]
-    by_priority = [{'priority': k, 'cnt': v} for k, v in Counter(t.get('priority','') for t in all_tickets).items()]
-    by_category = [{'category': k, 'cnt': v} for k, v in Counter(t.get('category','') for t in all_tickets).items()]
-
-    return render_template('dashboard.html',
-        recent_tickets=recent, stats=stats,
-        by_status=json.dumps(by_status),
-        by_priority=json.dumps(by_priority),
-        by_category=json.dumps(by_category))
+    else:
+        # Admin sees everything
+        from collections import Counter
+        stats = {
+            'total':       len(all_tickets),
+            'open':        sum(1 for t in all_tickets if t.get('status') == 'Open'),
+            'in_progress': sum(1 for t in all_tickets if t.get('status') == 'In Progress'),
+            'resolved':    sum(1 for t in all_tickets if t.get('status') == 'Resolved'),
+            'critical':    sum(1 for t in all_tickets if t.get('priority') == 'Critical'),
+        }
+        recent      = all_tickets[:5]
+        by_status   = [{'status': k, 'cnt': v} for k, v in Counter(t.get('status','') for t in all_tickets).items()]
+        by_priority = [{'priority': k, 'cnt': v} for k, v in Counter(t.get('priority','') for t in all_tickets).items()]
+        by_category = [{'category': k, 'cnt': v} for k, v in Counter(t.get('category','') for t in all_tickets).items()]
+        return render_template('dashboard.html',
+            role='admin', recent_tickets=recent, stats=stats,
+            by_status=json.dumps(by_status),
+            by_priority=json.dumps(by_priority),
+            by_category=json.dumps(by_category))
 
 # ── Routes: Tickets ───────────────────────────────────────────────────────────
 @app.route('/tickets')
@@ -555,20 +586,20 @@ def ticket_chat_join(ticket_id):
 @app.route('/admin')
 @admin_required
 def admin():
+    user_search = request.args.get('user_search', '').strip().lower()
+
     tickets_ref = db.collection('tickets').order_by('created_at', direction=firestore.Query.DESCENDING)
     all_tickets = [{'id': d.id, **d.to_dict()} for d in tickets_ref.stream()]
 
-    users_ref = db.collection('users').stream()
-    all_users = [{'id': u.id, **u.to_dict()} for u in users_ref]
+    all_users = [{'id': u.id, **u.to_dict()} for u in db.collection('users').stream()]
 
-    email_log = ''
-    log_path = os.path.join(BASE_DIR, 'email_log.txt')
-    if os.path.exists(log_path):
-        with open(log_path) as f:
-            email_log = f.read()[-3000:]
+    # Filter users by email search
+    if user_search:
+        all_users = [u for u in all_users if user_search in u.get('email', '').lower()
+                     or user_search in u.get('name', '').lower()]
 
     return render_template('admin.html',
-        tickets=all_tickets, users=all_users, email_log=email_log)
+        tickets=all_tickets, users=all_users, user_search=user_search)
 
 @app.route('/admin/users/<uid>/role', methods=['POST'])
 @admin_required

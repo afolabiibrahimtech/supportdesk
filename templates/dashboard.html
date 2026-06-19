@@ -1,106 +1,219 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — SupportDesk{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
-{% block page_subtitle %}Overview of all support activity{% endblock %}
+{% block page_subtitle %}
+  {% if role == 'user' %}Your support tickets
+  {% elif role == 'agent' %}Your assigned tickets
+  {% else %}Overview of all support activity{% endif %}
+{% endblock %}
 
 {% block content %}
-<!-- Stats Grid -->
-<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
-    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total</p>
-    <p class="text-3xl font-bold text-slate-800 mt-1">{{ stats.total }}</p>
-    <p class="text-xs text-slate-400 mt-1">All tickets</p>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-blue-100">
-    <p class="text-xs font-medium text-blue-500 uppercase tracking-wide">Open</p>
-    <p class="text-3xl font-bold text-blue-700 mt-1">{{ stats.open }}</p>
-    <p class="text-xs text-slate-400 mt-1">Needs attention</p>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-amber-100">
-    <p class="text-xs font-medium text-amber-500 uppercase tracking-wide">In Progress</p>
-    <p class="text-3xl font-bold text-amber-700 mt-1">{{ stats.in_progress }}</p>
-    <p class="text-xs text-slate-400 mt-1">Being worked on</p>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-green-100">
-    <p class="text-xs font-medium text-green-500 uppercase tracking-wide">Resolved</p>
-    <p class="text-3xl font-bold text-green-700 mt-1">{{ stats.resolved }}</p>
-    <p class="text-xs text-slate-400 mt-1">Completed</p>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-red-100">
-    <p class="text-xs font-medium text-red-500 uppercase tracking-wide">Critical</p>
-    <p class="text-3xl font-bold text-red-700 mt-1">{{ stats.critical }}</p>
-    <p class="text-xs text-slate-400 mt-1">High urgency</p>
-  </div>
-</div>
 
-<!-- Charts Row -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-  <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-    <h3 class="text-sm font-semibold text-slate-700 mb-4">Tickets by Status</h3>
-    <canvas id="statusChart" height="180"></canvas>
-  </div>
-  <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-    <h3 class="text-sm font-semibold text-slate-700 mb-4">Tickets by Priority</h3>
-    <canvas id="priorityChart" height="180"></canvas>
-  </div>
-  <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-    <h3 class="text-sm font-semibold text-slate-700 mb-4">Tickets by Category</h3>
-    <canvas id="categoryChart" height="180"></canvas>
-  </div>
-</div>
+{# ── USER DASHBOARD ── #}
+{% if role == 'user' %}
+<div style="display:flex;flex-direction:column;gap:24px;">
 
-<!-- Recent Tickets -->
-<div class="bg-white rounded-xl shadow-sm border border-slate-200">
-  <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-    <h3 class="text-sm font-semibold text-slate-700">Recent Tickets</h3>
-    <a href="{{ url_for('tickets') }}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">View all →</a>
-  </div>
-  <div class="divide-y divide-slate-50">
-    {% for t in recent_tickets %}
-    <div class="px-6 py-4 hover:bg-slate-50 transition-colors">
-      <div class="flex items-start justify-between gap-4">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-xs text-slate-400 font-mono">#{{ t.id }}</span>
-            <span class="text-sm font-medium text-slate-800 truncate">{{ t.title }}</span>
+  <!-- Active Tickets -->
+  <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:14px;font-weight:600;color:#1e293b;">Active Tickets</h3>
+      <span style="font-size:12px;background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:20px;font-weight:600;">{{ active_tickets|length }}</span>
+    </div>
+    {% if active_tickets %}
+    <div>
+      {% for t in active_tickets %}
+      <a href="{{ url_for('ticket_chat', ticket_id=t.id) }}" style="display:block;padding:16px 24px;border-bottom:1px solid #f8fafc;text-decoration:none;transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <div style="min-width:0;">
+            <p style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}</p>
+            <p style="font-size:11px;color:#94a3b8;margin-top:2px;">{{ t.created_at }} · {{ t.category }}</p>
           </div>
-          <p class="text-xs text-slate-500 truncate">{{ t.description[:80] }}{% if t.description|length > 80 %}...{% endif %}</p>
-          <p class="text-xs text-slate-400 mt-1">{{ t.created_at }}</p>
+          <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;flex-shrink:0;
+            {% if t.status == 'Open' %}background:#dbeafe;color:#1d4ed8;
+            {% else %}background:#fef3c7;color:#92400e;{% endif %}">{{ t.status }}</span>
         </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <span class="text-xs px-2 py-1 rounded-full font-medium
-            {% if t.status == 'Open' %}bg-blue-100 text-blue-700
-            {% elif t.status == 'In Progress' %}bg-amber-100 text-amber-700
-            {% else %}bg-green-100 text-green-700{% endif %}">{{ t.status }}</span>
-          <span class="text-xs px-2 py-1 rounded-full font-medium
-            {% if t.priority == 'Critical' %}bg-red-100 text-red-700
-            {% elif t.priority == 'High' %}bg-orange-100 text-orange-700
-            {% elif t.priority == 'Medium' %}bg-yellow-100 text-yellow-700
-            {% else %}bg-slate-100 text-slate-600{% endif %}">{{ t.priority }}</span>
-        </div>
-      </div>
+      </a>
+      {% endfor %}
     </div>
     {% else %}
-    <div class="px-6 py-12 text-center">
-      <p class="text-slate-400 text-sm">No tickets yet.</p>
-      <a href="{{ url_for('new_ticket') }}" class="text-indigo-600 text-sm hover:underline mt-1 inline-block">Create your first ticket →</a>
+    <div style="padding:40px;text-align:center;">
+      <p style="color:#94a3b8;font-size:13px;">No active tickets.</p>
+      <a href="{{ url_for('chat') }}" style="color:#6366f1;font-size:13px;font-weight:500;text-decoration:none;display:inline-block;margin-top:8px;">Start a support chat →</a>
     </div>
-    {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Ticket History -->
+  <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:14px;font-weight:600;color:#1e293b;">Ticket History</h3>
+      <span style="font-size:12px;background:#dcfce7;color:#166534;padding:3px 10px;border-radius:20px;font-weight:600;">{{ ticket_history|length }} resolved</span>
+    </div>
+    {% if ticket_history %}
+    <div>
+      {% for t in ticket_history %}
+      <a href="{{ url_for('ticket_chat', ticket_id=t.id) }}" style="display:block;padding:14px 24px;border-bottom:1px solid #f8fafc;text-decoration:none;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="min-width:0;">
+            <p style="font-size:13px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}</p>
+            <p style="font-size:11px;color:#94a3b8;margin-top:2px;">{{ t.updated_at }}</p>
+          </div>
+          <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:#dcfce7;color:#166534;flex-shrink:0;">Resolved</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="padding:40px;text-align:center;">
+      <p style="color:#94a3b8;font-size:13px;">No resolved tickets yet.</p>
+    </div>
+    {% endif %}
   </div>
 </div>
+
+{# ── AGENT DASHBOARD ── #}
+{% elif role == 'agent' %}
+<div style="display:flex;flex-direction:column;gap:24px;">
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;">
+      <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Assigned</p>
+      <p style="font-size:32px;font-weight:700;color:#1e293b;margin-top:4px;">{{ assigned }}</p>
+      <p style="font-size:11px;color:#94a3b8;margin-top:2px;">Total tickets</p>
+    </div>
+    <div style="background:#fff;border-radius:16px;border:1px solid #fef3c7;padding:20px;">
+      <p style="font-size:11px;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:0.05em;">In Progress</p>
+      <p style="font-size:32px;font-weight:700;color:#92400e;margin-top:4px;">{{ in_progress }}</p>
+      <p style="font-size:11px;color:#94a3b8;margin-top:2px;">Being worked on</p>
+    </div>
+    <div style="background:#fff;border-radius:16px;border:1px solid #dcfce7;padding:20px;">
+      <p style="font-size:11px;font-weight:600;color:#22c55e;text-transform:uppercase;letter-spacing:0.05em;">Resolved</p>
+      <p style="font-size:32px;font-weight:700;color:#166534;margin-top:4px;">{{ resolved }}</p>
+      <p style="font-size:11px;color:#94a3b8;margin-top:2px;">Completed</p>
+    </div>
+  </div>
+
+  <!-- Recent assigned -->
+  <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;">
+      <h3 style="font-size:14px;font-weight:600;color:#1e293b;">Your Tickets</h3>
+    </div>
+    {% if recent_tickets %}
+    <div>
+      {% for t in recent_tickets %}
+      <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}" style="display:block;padding:14px 24px;border-bottom:1px solid #f8fafc;text-decoration:none;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="min-width:0;">
+            <p style="font-size:13px;font-weight:500;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}</p>
+            <p style="font-size:11px;color:#94a3b8;margin-top:2px;">{{ t.created_at }} · {{ t.category }}</p>
+          </div>
+          <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;flex-shrink:0;
+            {% if t.status == 'Open' %}background:#dbeafe;color:#1d4ed8;
+            {% elif t.status == 'In Progress' %}background:#fef3c7;color:#92400e;
+            {% else %}background:#dcfce7;color:#166534;{% endif %}">{{ t.status }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="padding:40px;text-align:center;">
+      <p style="color:#94a3b8;font-size:13px;">No tickets assigned to you yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── ADMIN DASHBOARD ── #}
+{% else %}
+<div style="display:flex;flex-direction:column;gap:24px;">
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;">
+      <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Total</p>
+      <p style="font-size:32px;font-weight:700;color:#1e293b;margin-top:4px;">{{ stats.total }}</p>
+    </div>
+    <div style="background:#fff;border-radius:16px;border:1px solid #dbeafe;padding:20px;">
+      <p style="font-size:11px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:0.05em;">Open</p>
+      <p style="font-size:32px;font-weight:700;color:#1d4ed8;margin-top:4px;">{{ stats.open }}</p>
+    </div>
+    <div style="background:#fff;border-radius:16px;border:1px solid #fef3c7;padding:20px;">
+      <p style="font-size:11px;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:0.05em;">In Progress</p>
+      <p style="font-size:32px;font-weight:700;color:#92400e;margin-top:4px;">{{ stats.in_progress }}</p>
+    </div>
+    <div style="background:#fff;border-radius:16px;border:1px solid #dcfce7;padding:20px;">
+      <p style="font-size:11px;font-weight:600;color:#22c55e;text-transform:uppercase;letter-spacing:0.05em;">Resolved</p>
+      <p style="font-size:32px;font-weight:700;color:#166534;margin-top:4px;">{{ stats.resolved }}</p>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;">
+      <h3 style="font-size:13px;font-weight:600;color:#475569;margin-bottom:16px;">By Status</h3>
+      <canvas id="statusChart" height="180"></canvas>
+    </div>
+    <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;">
+      <h3 style="font-size:13px;font-weight:600;color:#475569;margin-bottom:16px;">By Priority</h3>
+      <canvas id="priorityChart" height="180"></canvas>
+    </div>
+    <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;">
+      <h3 style="font-size:13px;font-weight:600;color:#475569;margin-bottom:16px;">By Category</h3>
+      <canvas id="categoryChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Recent Tickets -->
+  <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:14px;font-weight:600;color:#1e293b;">Recent Tickets</h3>
+      <a href="{{ url_for('tickets') }}" style="font-size:12px;color:#6366f1;text-decoration:none;font-weight:500;">View all →</a>
+    </div>
+    {% if recent_tickets %}
+    <div>
+      {% for t in recent_tickets %}
+      <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}" style="display:block;padding:14px 24px;border-bottom:1px solid #f8fafc;text-decoration:none;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="min-width:0;">
+            <p style="font-size:13px;font-weight:500;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}</p>
+            <p style="font-size:11px;color:#94a3b8;margin-top:2px;">{{ t.created_at }}{% if t.created_by %} · {{ t.created_by }}{% endif %}</p>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+              {% if t.status == 'Open' %}background:#dbeafe;color:#1d4ed8;
+              {% elif t.status == 'In Progress' %}background:#fef3c7;color:#92400e;
+              {% else %}background:#dcfce7;color:#166534;{% endif %}">{{ t.status }}</span>
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+              {% if t.priority == 'Critical' %}background:#fee2e2;color:#991b1b;
+              {% elif t.priority == 'High' %}background:#ffedd5;color:#9a3412;
+              {% else %}background:#f1f5f9;color:#475569;{% endif %}">{{ t.priority }}</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="padding:40px;text-align:center;">
+      <p style="color:#94a3b8;font-size:13px;">No tickets yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if role == 'admin' %}
 <script>
-const statusData = {{ by_status|safe }};
+const statusData   = {{ by_status|safe }};
 const priorityData = {{ by_priority|safe }};
 const categoryData = {{ by_category|safe }};
-
 const COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4'];
 
 function makeChart(id, data, labelKey, countKey, type='doughnut') {
   const ctx = document.getElementById(id);
-  if (!ctx) return;
+  if (!ctx || !data.length) return;
   new Chart(ctx, {
     type: type,
     data: {
@@ -114,9 +227,9 @@ function makeChart(id, data, labelKey, countKey, type='doughnut') {
     }
   });
 }
-
-makeChart('statusChart', statusData, 'status', 'cnt');
+makeChart('statusChart',   statusData,   'status',   'cnt');
 makeChart('priorityChart', priorityData, 'priority', 'cnt');
 makeChart('categoryChart', categoryData, 'category', 'cnt', 'bar');
 </script>
+{% endif %}
 {% endblock %}

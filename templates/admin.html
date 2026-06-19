@@ -1,56 +1,72 @@
 {% extends "base.html" %}
 {% block title %}Admin Panel — SupportDesk{% endblock %}
 {% block page_title %}Admin Panel{% endblock %}
-{% block page_subtitle %}Manage tickets, users, and system activity{% endblock %}
+{% block page_subtitle %}Manage tickets and users{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div style="display:flex;flex-direction:column;gap:24px;">
 
-  <!-- Users Table -->
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100">
-      <h3 class="text-sm font-semibold text-slate-700">Registered Users ({{ users|length }})</h3>
+  <!-- User Search + Table -->
+  <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;">
+      <form method="GET" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <h3 style="font-size:14px;font-weight:600;color:#1e293b;margin-right:8px;">Users</h3>
+        <div style="position:relative;flex:1;min-width:200px;">
+          <input type="text" name="user_search" value="{{ user_search }}" placeholder="Search by name or email..."
+            style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 16px 8px 36px;font-size:13px;outline:none;font-family:inherit;"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"/>
+          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <button type="submit" style="background:#6366f1;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Search</button>
+        {% if user_search %}
+        <a href="{{ url_for('admin') }}" style="font-size:13px;color:#64748b;text-decoration:none;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;">Clear</a>
+        {% endif %}
+      </form>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
-          <tr class="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
-            <th class="text-left px-6 py-3 font-medium">Name</th>
-            <th class="text-left px-4 py-3 font-medium">Email</th>
-            <th class="text-left px-4 py-3 font-medium">Role</th>
-            <th class="text-left px-4 py-3 font-medium">Joined</th>
-            {% if session.role == 'admin' %}<th class="px-4 py-3 font-medium">Actions</th>{% endif %}
+          <tr style="background:#f8fafc;">
+            <th style="text-align:left;padding:10px 24px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Name</th>
+            <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Email</th>
+            <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Role</th>
+            <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Joined</th>
+            {% if session.role == 'admin' %}<th style="padding:10px 16px;"></th>{% endif %}
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-50">
+        <tbody>
           {% for u in users %}
-          <tr class="hover:bg-slate-50 transition-colors">
-            <td class="px-6 py-3 font-medium text-slate-800">{{ u.name }}</td>
-            <td class="px-4 py-3 text-slate-500 text-xs">{{ u.email }}</td>
-            <td class="px-4 py-3">
-              <span class="text-xs px-2 py-1 rounded-full font-medium
-                {% if u.role == 'admin' %}bg-purple-100 text-purple-700
-                {% elif u.role == 'agent' %}bg-blue-100 text-blue-700
-                {% else %}bg-slate-100 text-slate-600{% endif %}">{{ u.role }}</span>
+          <tr style="border-top:1px solid #f1f5f9;">
+            <td style="padding:12px 24px;font-weight:500;color:#1e293b;">{{ u.name }}</td>
+            <td style="padding:12px 16px;color:#64748b;font-size:12px;">{{ u.email }}</td>
+            <td style="padding:12px 16px;">
+              <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+                {% if u.role == 'admin' %}background:#ede9fe;color:#6d28d9;
+                {% elif u.role == 'agent' %}background:#dbeafe;color:#1d4ed8;
+                {% else %}background:#f1f5f9;color:#475569;{% endif %}">{{ u.role }}</span>
             </td>
-            <td class="px-4 py-3 text-slate-400 text-xs">{{ u.created_at }}</td>
+            <td style="padding:12px 16px;color:#94a3b8;font-size:12px;">{{ u.created_at }}</td>
             {% if session.role == 'admin' %}
-            <td class="px-4 py-3">
+            <td style="padding:12px 16px;">
               {% if u.id != session.uid %}
-              <form method="POST" action="{{ url_for('update_user_role', uid=u.id) }}" class="flex items-center gap-2">
-                <select name="role" class="border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400">
+              <form method="POST" action="{{ url_for('update_user_role', uid=u.id) }}" style="display:flex;align-items:center;gap:6px;">
+                <select name="role" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;outline:none;cursor:pointer;">
                   {% for r in ['user','agent','admin'] %}
                   <option value="{{ r }}" {% if u.role == r %}selected{% endif %}>{{ r }}</option>
                   {% endfor %}
                 </select>
-                <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Update</button>
+                <button type="submit" style="background:none;border:none;color:#6366f1;font-size:12px;font-weight:600;cursor:pointer;">Update</button>
               </form>
               {% else %}
-              <span class="text-xs text-slate-400">You</span>
+              <span style="font-size:12px;color:#94a3b8;">You</span>
               {% endif %}
             </td>
             {% endif %}
           </tr>
+          {% else %}
+          <tr><td colspan="5" style="padding:40px;text-align:center;color:#94a3b8;font-size:13px;">No users found.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -58,73 +74,56 @@
   </div>
 
   <!-- All Tickets -->
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-slate-700">All Tickets ({{ tickets|length }})</h3>
-      <a href="{{ url_for('new_ticket') }}" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors">+ New Ticket</a>
+  <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:14px;font-weight:600;color:#1e293b;">All Tickets ({{ tickets|length }})</h3>
+      <a href="{{ url_for('new_ticket') }}" style="background:#6366f1;color:#fff;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;">+ New Ticket</a>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
-          <tr class="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
-            <th class="text-left px-6 py-3 font-medium">Title</th>
-            <th class="text-left px-4 py-3 font-medium">Status</th>
-            <th class="text-left px-4 py-3 font-medium">Priority</th>
-            <th class="text-left px-4 py-3 font-medium">Category</th>
-            <th class="text-left px-4 py-3 font-medium">Assigned</th>
-            <th class="text-left px-4 py-3 font-medium">Created By</th>
-            <th class="px-4 py-3"></th>
+          <tr style="background:#f8fafc;">
+            <th style="text-align:left;padding:10px 24px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Title</th>
+            <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
+            <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Priority</th>
+            <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Assigned</th>
+            <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Created By</th>
+            <th style="padding:10px 16px;"></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-50">
+        <tbody>
           {% for t in tickets %}
-          <tr class="hover:bg-slate-50 transition-colors">
-            <td class="px-6 py-3 max-w-xs">
-              <p class="font-medium text-slate-800 truncate text-xs">{{ t.title }}</p>
-              <p class="text-slate-400 text-xs">{{ t.created_at }}</p>
+          <tr style="border-top:1px solid #f1f5f9;">
+            <td style="padding:12px 24px;max-width:200px;">
+              <p style="font-weight:500;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.title }}</p>
+              <p style="font-size:11px;color:#94a3b8;margin-top:2px;">{{ t.created_at }}</p>
             </td>
-            <td class="px-4 py-3">
-              <span class="text-xs px-2 py-0.5 rounded-full font-medium
-                {% if t.status == 'Open' %}bg-blue-100 text-blue-700
-                {% elif t.status == 'In Progress' %}bg-amber-100 text-amber-700
-                {% else %}bg-green-100 text-green-700{% endif %}">{{ t.status }}</span>
+            <td style="padding:12px 16px;">
+              <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+                {% if t.status == 'Open' %}background:#dbeafe;color:#1d4ed8;
+                {% elif t.status == 'In Progress' %}background:#fef3c7;color:#92400e;
+                {% else %}background:#dcfce7;color:#166534;{% endif %}">{{ t.status }}</span>
             </td>
-            <td class="px-4 py-3">
-              <span class="text-xs px-2 py-0.5 rounded-full font-medium
-                {% if t.priority == 'Critical' %}bg-red-100 text-red-700
-                {% elif t.priority == 'High' %}bg-orange-100 text-orange-700
-                {% elif t.priority == 'Medium' %}bg-yellow-100 text-yellow-700
-                {% else %}bg-slate-100 text-slate-600{% endif %}">{{ t.priority }}</span>
+            <td style="padding:12px 16px;">
+              <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+                {% if t.priority == 'Critical' %}background:#fee2e2;color:#991b1b;
+                {% elif t.priority == 'High' %}background:#ffedd5;color:#9a3412;
+                {% elif t.priority == 'Medium' %}background:#fef9c3;color:#854d0e;
+                {% else %}background:#f1f5f9;color:#475569;{% endif %}">{{ t.priority }}</span>
             </td>
-            <td class="px-4 py-3 text-xs text-slate-500">{{ t.category }}</td>
-            <td class="px-4 py-3 text-xs text-slate-500">{{ t.assigned_to or '—' }}</td>
-            <td class="px-4 py-3 text-xs text-slate-500">{{ t.created_by or '—' }}</td>
-            <td class="px-4 py-3" style="white-space:nowrap;">
-              <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}" class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">Detail</a>
+            <td style="padding:12px 16px;color:#64748b;font-size:12px;">{{ t.assigned_to or '—' }}</td>
+            <td style="padding:12px 16px;color:#64748b;font-size:12px;">{{ t.created_by or '—' }}</td>
+            <td style="padding:12px 16px;white-space:nowrap;">
+              <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}" style="color:#6366f1;font-size:12px;font-weight:500;text-decoration:none;">Detail</a>
               <span style="color:#e2e8f0;margin:0 4px;">|</span>
-              <a href="{{ url_for('ticket_chat', ticket_id=t.id) }}" class="text-xs font-medium" style="color:#8b5cf6;">Chat</a>
+              <a href="{{ url_for('ticket_chat', ticket_id=t.id) }}" style="color:#8b5cf6;font-size:12px;font-weight:500;text-decoration:none;">Chat</a>
             </td>
           </tr>
+          {% else %}
+          <tr><td colspan="6" style="padding:40px;text-align:center;color:#94a3b8;font-size:13px;">No tickets yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
-    </div>
-  </div>
-
-  <!-- Email Log -->
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200">
-    <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-      </svg>
-      <h3 class="text-sm font-semibold text-slate-700">Email Notification Log</h3>
-    </div>
-    <div class="p-6">
-      {% if email_log %}
-      <pre class="text-xs text-slate-600 bg-slate-50 rounded-lg p-4 overflow-auto max-h-64 whitespace-pre-wrap border border-slate-200">{{ email_log }}</pre>
-      {% else %}
-      <p class="text-sm text-slate-400 py-4 text-center">No email notifications sent yet.</p>
-      {% endif %}
     </div>
   </div>
 
