@@ -18,7 +18,15 @@ ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 
 # ── Firebase Init ─────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-cred = credentials.Certificate(os.path.join(BASE_DIR, 'serviceAccountKey.json'))
+
+cred_json = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+if cred_json:
+    cred_dict = json.loads(cred_json)
+    cred = credentials.Certificate(cred_dict)
+else:
+    # Local fallback
+    cred = credentials.Certificate(os.path.join(BASE_DIR, 'serviceAccountKey.json'))
+
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
