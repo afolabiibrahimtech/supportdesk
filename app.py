@@ -451,18 +451,20 @@ def chat_create_ticket():
     ticket_id = doc_ref[1].id
 
     if session.get('email'):
+        user_name = session.get('name', '')
+        lines = [
+            'Hi ' + user_name + ',',
+            '',
+            'Your support ticket has been created.',
+            'Ticket reference: #' + ticket_id,
+            'A support agent will be assigned shortly.',
+            '',
+            '— SupportDesk'
+        ]
         simulate_email(
             session['email'],
             '[SupportDesk] Your ticket has been created',
-            f"Hi {session.get('name')},
-
-Your support ticket has been created.
-"
-            f"Ticket reference: #{ticket_id}
-"
-            f"A support agent will be assigned shortly.
-
-— SupportDesk"
+            chr(10).join(lines)
         )
 
     return jsonify({'ticket_id': ticket_id})
