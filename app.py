@@ -345,9 +345,15 @@ def ticket_detail(ticket_id):
         flash('Ticket not found.', 'error')
         return redirect(url_for('tickets'))
     ticket = {'id': doc.id, **doc.to_dict()}
-    comments_ref = db.collection('tickets').document(ticket_id).collection('comments').order_by('created_at')
-    comments = [{'id': c.id, **c.to_dict()} for c in comments_ref.stream()]
-    return render_template('ticket_detail.html', ticket=ticket, comments=comments)
+
+    agents = []
+    if session.get('role') == 'admin':
+        for u in db.collection('users').stream():
+            data = u.to_dict()
+            if data.get('role', '').strip().lower() == 'agent':
+                agents.append({'id': u.id, **data})
+
+    return render_template('ticket_detail.html', ticket=ticket, agents=agents)
 
 @app.route('/tickets/<ticket_id>/update', methods=['POST'])
 @admin_required
@@ -371,39 +377,39 @@ def update_ticket(ticket_id):
 
     doc_ref.update(update_data)
 
+    # Post event to chat if a new agent was assigned
+    old_assigned = old.get('assigned_to', '')
+    if assigned_to and assigned_to != old_assigned:
+        now_chat = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        db.collection('tickets').document(ticket_id).collection('chat_messages').add({
+            'author': assigned_to,
+            'role': 'agent',
+            'body': assigned_to + ' joined the chat',
+            'type': 'event',
+            'created_at': now_chat
+        })
+
     if old.get('email') and status != old.get('status'):
+        body_lines = [
+            'Hi,', '',
+            "Your ticket '" + old['title'] + "' status changed to: " + status,
+            'Assigned to: ' + (assigned_to or 'Unassigned'),
+            '', '— SupportDesk'
+        ]
         simulate_email(old['email'],
             "[SupportDesk] Ticket Status Updated",
-            f"Hi,\n\nYour ticket '{old['title']}' status changed to: {status}\n"
-            f"Assigned to: {assigned_to or 'Unassigned'}\n\n— SupportDesk")
+            chr(10).join(body_lines))
         doc_ref.update({'email_sent': True})
 
     flash('Ticket updated.', 'success')
     return redirect(url_for('ticket_detail', ticket_id=ticket_id))
 
-@app.route('/tickets/<ticket_id>/comment', methods=['POST'])
-@login_required
-def add_comment(ticket_id):
-    body = request.form.get('body', '').strip()
-    if not body:
-        flash('Comment cannot be empty.', 'error')
-        return redirect(url_for('ticket_detail', ticket_id=ticket_id))
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    db.collection('tickets').document(ticket_id).collection('comments').add({
-        'author': session['name'],
-        'body': body,
-        'created_at': now
-    })
-    db.collection('tickets').document(ticket_id).update({'updated_at': now})
-    flash('Comment added.', 'success')
-    return redirect(url_for('ticket_detail', ticket_id=ticket_id))
-
 @app.route('/tickets/<ticket_id>/delete', methods=['POST'])
 @admin_required
 def delete_ticket(ticket_id):
-    comments = db.collection('tickets').document(ticket_id).collection('comments').stream()
-    for c in comments:
-        c.reference.delete()
+    chat_msgs = db.collection('tickets').document(ticket_id).collection('chat_messages').stream()
+    for m in chat_msgs:
+        m.reference.delete()
     db.collection('tickets').document(ticket_id).delete()
     flash('Ticket deleted.', 'success')
     return redirect(url_for('tickets'))

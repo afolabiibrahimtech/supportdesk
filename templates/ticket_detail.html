@@ -4,127 +4,109 @@
 {% block page_subtitle %}{{ ticket.title }}{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;" class="ticket-grid">
   <!-- Main content -->
-  <div class="lg:col-span-2 space-y-6">
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
     <!-- Ticket body -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <div class="flex items-start justify-between mb-4">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:24px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;">
         <div>
-          <h2 class="text-lg font-semibold text-slate-800">{{ ticket.title }}</h2>
-          <p class="text-xs text-slate-400 mt-1">
+          <h2 style="font-size:17px;font-weight:600;color:#1e293b;">{{ ticket.title }}</h2>
+          <p style="font-size:12px;color:#94a3b8;margin-top:4px;">
             Opened {{ ticket.created_at }}
             {% if ticket.created_by %} by {{ ticket.created_by }}{% endif %}
             {% if ticket.assigned_to %} · Assigned to {{ ticket.assigned_to }}{% endif %}
           </p>
         </div>
-        <div class="flex gap-2 flex-shrink-0">
-          <span class="text-xs px-2.5 py-1 rounded-full font-medium
-            {% if ticket.status == 'Open' %}bg-blue-100 text-blue-700
-            {% elif ticket.status == 'In Progress' %}bg-amber-100 text-amber-700
-            {% else %}bg-green-100 text-green-700{% endif %}">{{ ticket.status }}</span>
-          <span class="text-xs px-2.5 py-1 rounded-full font-medium
-            {% if ticket.priority == 'Critical' %}bg-red-100 text-red-700
-            {% elif ticket.priority == 'High' %}bg-orange-100 text-orange-700
-            {% elif ticket.priority == 'Medium' %}bg-yellow-100 text-yellow-700
-            {% else %}bg-slate-100 text-slate-600{% endif %}">{{ ticket.priority }}</span>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <span style="font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;
+            {% if ticket.status == 'Open' %}background:#dbeafe;color:#1d4ed8;
+            {% elif ticket.status == 'In Progress' %}background:#fef3c7;color:#92400e;
+            {% else %}background:#dcfce7;color:#166534;{% endif %}">{{ ticket.status }}</span>
+          <span style="font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;
+            {% if ticket.priority == 'Critical' %}background:#fee2e2;color:#991b1b;
+            {% elif ticket.priority == 'High' %}background:#ffedd5;color:#9a3412;
+            {% elif ticket.priority == 'Medium' %}background:#fef9c3;color:#854d0e;
+            {% else %}background:#f1f5f9;color:#475569;{% endif %}">{{ ticket.priority }}</span>
         </div>
       </div>
-      <p class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{{ ticket.description }}</p>
+      <p style="font-size:13px;color:#334155;line-height:1.7;white-space:pre-wrap;">{{ ticket.description }}</p>
       {% if ticket.email %}
-      <div class="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
         </svg>
-        {{ ticket.email }}{% if ticket.email_sent %} · <span class="text-green-600">Email sent</span>{% endif %}
+        {{ ticket.email }}{% if ticket.email_sent %} · <span style="color:#16a34a;">Email sent</span>{% endif %}
       </div>
       {% endif %}
     </div>
 
     <!-- AI Suggestion -->
-    <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
-      <div class="flex items-center gap-2 mb-3">
-        <div class="w-6 h-6 bg-indigo-500 rounded-md flex items-center justify-center">
-          <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+    <div style="background:linear-gradient(135deg,#eef2ff,#f5f3ff);border-radius:16px;border:1px solid #ddd6fe;padding:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="width:24px;height:24px;background:#6366f1;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
         </div>
-        <h3 class="text-sm font-semibold text-indigo-900">AI Suggestion</h3>
-        <span class="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">Claude</span>
+        <h3 style="font-size:13px;font-weight:600;color:#3730a3;">AI Suggestion</h3>
       </div>
-      <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{{ ticket.ai_suggestion or 'No AI suggestion available.' }}</p>
+      <p style="font-size:13px;color:#334155;line-height:1.7;white-space:pre-wrap;">{{ ticket.ai_suggestion or 'No AI suggestion available.' }}</p>
     </div>
 
-    <!-- Comments -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200">
-      <div class="px-6 py-4 border-b border-slate-100">
-        <h3 class="text-sm font-semibold text-slate-700">Comments ({{ comments|length }})</h3>
-      </div>
-      <div class="divide-y divide-slate-50">
-        {% for c in comments %}
-        <div class="px-6 py-4">
-          <div class="flex items-center gap-2 mb-2">
-            <div class="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-xs font-bold">{{ c.author[0] }}</div>
-            <span class="text-sm font-medium text-slate-700">{{ c.author }}</span>
-            <span class="text-xs text-slate-400">{{ c.created_at }}</span>
-          </div>
-          <p class="text-sm text-slate-600 ml-8">{{ c.body }}</p>
-        </div>
-        {% else %}
-        <div class="px-6 py-8 text-center text-slate-400 text-sm">No comments yet.</div>
-        {% endfor %}
-      </div>
-      <div class="px-6 py-4 border-t border-slate-100">
-        <form method="POST" action="{{ url_for('add_comment', ticket_id=ticket.id) }}">
-          <textarea name="body" rows="3" placeholder="Add a comment..."
-            class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none mb-3"></textarea>
-          <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">Post Comment</button>
-        </form>
-      </div>
-    </div>
+    <!-- Go to chat -->
+    <a href="{{ url_for('ticket_chat', ticket_id=ticket.id) }}"
+      style="display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;text-decoration:none;transition:border-color 0.15s, background 0.15s;"
+      onmouseover="this.style.borderColor='#6366f1';this.style.background='#f8faff'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff'">
+      <svg width="18" height="18" fill="none" stroke="#6366f1" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+      </svg>
+      <span style="font-size:13px;font-weight:600;color:#6366f1;">Open Conversation</span>
+    </a>
   </div>
 
   <!-- Sidebar -->
-  <div class="space-y-4">
+  <div style="display:flex;flex-direction:column;gap:16px;">
     <!-- Details -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Details</h3>
-      <dl class="space-y-3">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;">
+      <h3 style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px;">Details</h3>
+      <div style="display:flex;flex-direction:column;gap:12px;">
         <div>
-          <dt class="text-xs text-slate-400">Category</dt>
-          <dd class="text-sm text-slate-700 font-medium mt-0.5">{{ ticket.category }}</dd>
+          <p style="font-size:11px;color:#94a3b8;">Category</p>
+          <p style="font-size:13px;font-weight:500;color:#1e293b;margin-top:2px;">{{ ticket.category }}</p>
         </div>
         <div>
-          <dt class="text-xs text-slate-400">Priority</dt>
-          <dd class="text-sm font-medium mt-0.5
-            {% if ticket.priority == 'Critical' %}text-red-600
-            {% elif ticket.priority == 'High' %}text-orange-600
-            {% elif ticket.priority == 'Medium' %}text-yellow-600
-            {% else %}text-slate-600{% endif %}">{{ ticket.priority }}</dd>
+          <p style="font-size:11px;color:#94a3b8;">Priority</p>
+          <p style="font-size:13px;font-weight:500;margin-top:2px;
+            {% if ticket.priority == 'Critical' %}color:#dc2626;
+            {% elif ticket.priority == 'High' %}color:#ea580c;
+            {% elif ticket.priority == 'Medium' %}color:#ca8a04;
+            {% else %}color:#475569;{% endif %}">{{ ticket.priority }}</p>
         </div>
         <div>
-          <dt class="text-xs text-slate-400">Status</dt>
-          <dd class="text-sm text-slate-700 font-medium mt-0.5">{{ ticket.status }}</dd>
+          <p style="font-size:11px;color:#94a3b8;">Status</p>
+          <p style="font-size:13px;font-weight:500;color:#1e293b;margin-top:2px;">{{ ticket.status }}</p>
         </div>
         <div>
-          <dt class="text-xs text-slate-400">Assigned To</dt>
-          <dd class="text-sm text-slate-700 font-medium mt-0.5">{{ ticket.assigned_to or 'Unassigned' }}</dd>
+          <p style="font-size:11px;color:#94a3b8;">Assigned To</p>
+          <p style="font-size:13px;font-weight:500;color:#1e293b;margin-top:2px;">{{ ticket.assigned_to or 'Unassigned' }}</p>
         </div>
         <div>
-          <dt class="text-xs text-slate-400">Last Updated</dt>
-          <dd class="text-sm text-slate-700 mt-0.5">{{ ticket.updated_at }}</dd>
+          <p style="font-size:11px;color:#94a3b8;">Last Updated</p>
+          <p style="font-size:13px;color:#1e293b;margin-top:2px;">{{ ticket.updated_at }}</p>
         </div>
-      </dl>
+      </div>
     </div>
 
     <!-- Admin Actions -->
     {% if session.role in ('admin', 'agent') %}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Update Ticket</h3>
-      <form method="POST" action="{{ url_for('update_ticket', ticket_id=ticket.id) }}" class="space-y-3">
+    <div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:20px;">
+      <h3 style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px;">Update Ticket</h3>
+      <form method="POST" action="{{ url_for('update_ticket', ticket_id=ticket.id) }}" style="display:flex;flex-direction:column;gap:12px;">
         <div>
-          <label class="text-xs text-slate-500 mb-1 block">Status</label>
-          <select name="status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Status</label>
+          <select name="status" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;cursor:pointer;">
             {% for s in ['Open','In Progress','Resolved'] %}
             <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s }}</option>
             {% endfor %}
@@ -133,53 +115,57 @@
 
         {% if session.role == 'admin' %}
         <div>
-          <label class="text-xs text-slate-500 mb-1 block">Priority</label>
-          <select name="priority" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Priority</label>
+          <select name="priority" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;cursor:pointer;">
             {% for p in ['Low','Medium','High','Critical'] %}
             <option value="{{ p }}" {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
             {% endfor %}
           </select>
         </div>
-        {% else %}
-        <input type="hidden" name="priority" value="{{ ticket.priority }}"/>
-        {% endif %}
 
         <div>
-          <label class="text-xs text-slate-500 mb-1 block">Assign To</label>
-          <input type="text" name="assigned_to" value="{{ ticket.assigned_to }}" placeholder="Agent name"
-            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"/>
+          <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">Assign Agent</label>
+          <select name="assigned_to" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;cursor:pointer;">
+            <option value="">— Unassigned —</option>
+            {% for a in agents %}
+            <option value="{{ a.name }}" {% if ticket.assigned_to == a.name %}selected{% endif %}>{{ a.name }}</option>
+            {% endfor %}
+          </select>
         </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition-colors">Save Changes</button>
+        {% else %}
+        <input type="hidden" name="priority" value="{{ ticket.priority }}"/>
+        <input type="hidden" name="assigned_to" value="{{ ticket.assigned_to }}"/>
+        {% endif %}
+
+        <button type="submit" style="width:100%;background:#6366f1;color:#fff;border:none;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Save Changes</button>
       </form>
     </div>
     {% endif %}
 
     {% if session.role == 'admin' %}
-    <div class="bg-white rounded-xl shadow-sm border border-red-100 p-5">
-      <h3 class="text-xs font-semibold text-red-400 uppercase tracking-wide mb-3">Danger Zone</h3>
+    <div style="background:#fff;border-radius:16px;border:1px solid #fecaca;padding:20px;">
+      <h3 style="font-size:11px;font-weight:600;color:#f87171;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Danger Zone</h3>
       <form method="POST" action="{{ url_for('delete_ticket', ticket_id=ticket.id) }}"
         onsubmit="return confirm('Delete this ticket? This cannot be undone.')">
-        <button type="submit" class="w-full bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium py-2 rounded-lg border border-red-200 transition-colors">
+        <button type="submit" style="width:100%;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:8px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
           Delete Ticket
         </button>
       </form>
     </div>
     {% endif %}
 
-    <a href="{{ url_for('ticket_chat', ticket_id=ticket.id) }}"
-      style="display:inline-flex;align-items:center;gap:8px;background:#6366f1;color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:8px;width:100%;justify-content:center;">
+    <a href="{{ url_for('tickets') }}" style="display:flex;align-items:center;gap:8px;color:#64748b;font-size:13px;text-decoration:none;">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-      </svg>
-      Open Chat
-    </a>
-
-    <a href="{{ url_for('tickets') }}" class="flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm transition-colors">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
       </svg>
       Back to tickets
     </a>
   </div>
 </div>
+
+<style>
+@media (max-width: 900px) {
+  .ticket-grid { grid-template-columns: 1fr !important; }
+}
+</style>
 {% endblock %}
